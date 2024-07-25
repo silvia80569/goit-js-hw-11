@@ -1,5 +1,7 @@
 // index.js
 import Notiflix from 'notiflix';
+import SimpleLightbox from 'simplelightbox';
+import 'simplelightbox/dist/simple-lightbox.min.css';
 import { fetchImages } from './api.js';
 
 let currentPage = 1;
@@ -8,8 +10,11 @@ let currentQuery = '';
 const form = document.querySelector('#search-form');
 const gallery = document.querySelector('.gallery');
 const loadMoreButton = document.querySelector('.load-more');
+loadMoreButton.style.display = 'none';
 
-const onFormSubmit = (e) => {
+const lightbox = new SimpleLightbox('.gallery a');
+
+const onFormSubmit = e => {
   e.preventDefault();
   currentQuery = e.currentTarget.elements.searchQuery.value.trim();
   if (!currentQuery) {
@@ -22,29 +27,49 @@ const onFormSubmit = (e) => {
   onSearch(currentQuery);
 };
 
-const onSearch = async (query) => {
+const onSearch = async query => {
   try {
     const data = await fetchImages(query, currentPage);
     if (data.hits.length === 0) {
-      Notiflix.Notify.failure('Sorry, there are no images matching your search query. Please try again.');
+      Notiflix.Notify.failure(
+        'Sorry, there are no images matching your search query. Please try again.'
+      );
     } else {
+      if (currentPage === 1) {
+        Notiflix.Notify.success(`Hooray! We found ${data.totalHits} images.`);
+      }
       renderGallery(data.hits);
+      lightbox.refresh();
+
       if (currentPage < Math.ceil(data.totalHits / 40)) {
         loadMoreButton.style.display = 'block';
       } else {
         loadMoreButton.style.display = 'none';
-        Notiflix.Notify.info("We're sorry, but you've reached the end of search results.");
+        Notiflix.Notify.info(
+          "We're sorry, but you've reached the end of search results."
+        );
       }
     }
   } catch (error) {
     console.error('Search error:', error);
-    Notiflix.Notify.failure('An error occurred during the search. Please try again.');
+    Notiflix.Notify.failure(
+      'An error occurred during the search. Please try again.'
+    );
   }
 };
 
-const renderGallery = (images) => {
-  const html = images.map(
-    ({ webformatURL, largeImageURL, tags, likes, views, comments, downloads }) => `
+const renderGallery = images => {
+  const html = images
+    .map(
+      ({
+        webformatURL,
+        largeImageURL,
+        tags,
+        likes,
+        views,
+        comments,
+        downloads,
+      }) => `
     <div class="photo-card">
       <a href="${largeImageURL}" target="_blank">
         <img src="${webformatURL}" alt="${tags}" loading="lazy" />
@@ -65,7 +90,8 @@ const renderGallery = (images) => {
       </div>
     </div>
     `
-  ).join('');
+    )
+    .join('');
   gallery.insertAdjacentHTML('beforeend', html);
 };
 
